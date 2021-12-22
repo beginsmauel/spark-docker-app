@@ -1,5 +1,5 @@
 FROM alpine:latest
-ARG version=2.4.4
+ARG version=3.0.3
 
 LABEL maintainer="Carlos Giraldo <cgiraldo@gradiant.org>" \
       organization="gradiant.org"
