@@ -51,6 +51,9 @@ ADD https://repo1.maven.org/maven2/org/apache/spark/spark-avro_2.12/$SPARK_VERSI
 COPY ./spark/spark-aggregator.jar /opt/$SPARK_VERSION-bin-hadoop2.7/local/$SPARK_HOME/jars/
 COPY ./spark/spark-cassandra.jar /opt/$SPARK_VERSION-bin-hadoop2.7/local/$SPARK_HOME/jars/
 
+COPY ./spark/spark-aggregator.jar /opt/spark/jars/
+COPY ./spark/spark-cassandra.jar /opt/spark/jars/
+
 RUN cp /sbin/tini /usr/bin/tini
 
 WORKDIR $SPARK_HOME/local
