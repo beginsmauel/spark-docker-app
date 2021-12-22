@@ -1,181 +1,145 @@
-# Spark Cluster with Docker & docker-compose(2021 ver.)
+**Deprecation Notice**
 
-# General
+This repository was our contribution to create a Spark container image when there were not good alternatives.
 
-A simple spark standalone cluster for your testing environment purposses. A *docker-compose up* away from you solution for your spark development environment.
-
-The Docker compose will create the following containers:
-
-container|Exposed ports
----|---
-spark-master|9090 7077
-spark-worker-1|9091
-spark-worker-2|9092
-demo-database|5432
-
-# Installation
-
-The following steps will make you run your spark cluster's containers.
-
-## Pre requisites
-
-* Docker installed
-
-* Docker compose  installed
-
-## Build the image
+Now there are good supported alternative such as the [Spark bitnami image](https://hub.docker.com/r/bitnami/spark), so we no longer support this repo.
 
 
-```sh
-docker build -t cluster-apache-spark:3.0.2 .
+
+
+This is a docker image of [Apache Spark](https://spark.apache.org/).
+
+## Properties
+
+This repo provides debian-based docker images and alpine-based docker images (-alpine suffix tag) for a small footprint.
+
+The image provides a spark distribution with basic libraries.
+
+There are also the following image variants:
+- python: support for pyspark + numpy + pandas + scikit-learn + pyarrow.
+- R: support for sparkR.
+- all: spport for pyspark + sparkR + several libraries.
+
+## Howto
+The image can be used to run spark in serveral ways:
+- Image to use for run spark locally.
+- Image to deploy spark standalone (master and workers).
+- Image to run a spark client.
+- Image to use for spark on kubernetes.
+
+
+## Local Spark
+Example of running a spark job in the container's local spark. 
+
+```
+docker run -ti gradiant/spark:latest-alpine spark-submit \
+  --master local[*] \
+  --class org.apache.spark.examples.SparkPi $SPARK_HOME/examples/jars/spark-examples_*.jar 100
 ```
 
-## Run the docker-compose
+## Spark Standalone 
 
-The final step to create your test cluster will be to run the compose file:
+**master container**
 
-```sh
-docker-compose up -d
+run container with `standalone master` as command.
+
+``` 
+docker run -d gradiant/spark:latest-alpine standalone master
 ```
 
-## Validate your cluster
+Optional configuration is through environment variables:
 
-Just validate your cluster accesing the spark UI on each worker & master URL.
+- SPARK_MASTER_HOST Default is the container hostname)
+- SPARK_MASTER_PORT (optional. Default is 7077)
+- SPARK_MASTER_WEBUI_PORT (optional. Default is 8080)
 
-### Spark Master
+**worker container**
 
-http://localhost:9090/
+run container with `standalone worker <master_url>` as command. 
 
-![alt text](docs/spark-master.png "Spark master UI")
-
-### Spark Worker 1
-
-http://localhost:9091/
-
-![alt text](docs/spark-worker-1.png "Spark worker 1 UI")
-
-### Spark Worker 2
-
-http://localhost:9092/
-
-![alt text](docs/spark-worker-2.png "Spark worker 2 UI")
-
-
-# Resource Allocation 
-
-This cluster is shipped with three workers and one spark master, each of these has a particular set of resource allocation(basically RAM & cpu cores allocation).
-
-* The default CPU cores allocation for each spark worker is 1 core.
-
-* The default RAM for each spark-worker is 1024 MB.
-
-* The default RAM allocation for spark executors is 256mb.
-
-* The default RAM allocation for spark driver is 128mb
-
-* If you wish to modify this allocations just edit the env/spark-worker.sh file.
-
-# Binded Volumes
-
-To make app running easier I've shipped two volume mounts described in the following chart:
-
-Host Mount|Container Mount|Purposse
----|---|---
-apps|/opt/spark-apps|Used to make available your app's jars on all workers & master
-data|/opt/spark-data| Used to make available your app's data on all workers & master
-
-This is basically a dummy DFS created from docker Volumes...(maybe not...)
-
-# Run Sample applications
-
-
-## NY Bus Stops Data [Pyspark]
-
-This programs just loads archived data from [MTA Bus Time](http://web.mta.info/developers/MTA-Bus-Time-historical-data.html) and apply basic filters using spark sql, the result are persisted into a postgresql table.
-
-The loaded table will contain the following structure:
-
-latitude|longitude|time_received|vehicle_id|distance_along_trip|inferred_direction_id|inferred_phase|inferred_route_id|inferred_trip_id|next_scheduled_stop_distance|next_scheduled_stop_id|report_hour|report_date
----|---|---|---|---|---|---|---|---|---|---|---|---
-40.668602|-73.986697|2014-08-01 04:00:01|469|4135.34710710144|1|IN_PROGRESS|MTA NYCT_B63|MTA NYCT_JG_C4-Weekday-141500_B63_123|2.63183804205619|MTA_305423|2014-08-01 04:00:00|2014-08-01
-
-To submit the app connect to one of the workers or the master and execute:
-
-```sh
-/opt/spark/bin/spark-submit --master spark://spark-master:7077 \
---jars /opt/spark-apps/postgresql-42.2.22.jar \
---driver-memory 1G \
---executor-memory 1G \
-/opt/spark-apps/main.py
+```
+docker run -d gradiant/spark:latest-alpine standalone worker <master_url> [options]
+Master must be a URL of the form spark://hostname:port.
+Options:
+  -c CORES, --cores CORES  Number of cores to use
+  -m MEM, --memory MEM     Amount of memory to use (e.g. 1000M, 2G)
 ```
 
-![alt text](./articles/images/pyspark-demo.png "Spark UI with pyspark program running")
+Optional configuration through environment variables:
+- SPARK_WORKER_PORT       The port number for the worker. 
+If unset, Spark will find a valid port number, but with no guarantee of a predictable pattern.
+- SPARK_WORKER_WEBUI_PORT The port for the web interface of the worker. Default is 8081.
 
-## MTA Bus Analytics[Scala]
+**Example of standalone usage**
 
-This program takes the archived data from [MTA Bus Time](http://web.mta.info/developers/MTA-Bus-Time-historical-data.html) and make some aggregations on it, the calculated results are persisted on postgresql tables.
+Example of a local spark standalone deployment with a spark master and three spark worker just for testing purposes.
 
-Each persisted table correspond to a particullar aggregation:
-
-Table|Aggregation
----|---
-day_summary|A summary of vehicles reporting, stops visited, average speed and distance traveled(all vehicles)
-speed_excesses|Speed excesses calculated in a 5 minute window
-average_speed|Average speed by vehicle
-distance_traveled|Total Distance traveled by vehicle
+*We strongly advise the deployment of spark in a cluster through an Infrastructure Orchestrator such as Swarm or Kubernetes to avoid worker containers to share resources.*
 
 
-To submit the app connect to one of the workers or the master and execute:
+```
+docker network create sparknet
+docker run -d -p 8080:8080 --name spadockerrk-master gradiant/spark:latest-alpine standalone master
+docker run -d --net sparknet --name spark-worker1 gradiant/spark:latest-alpine standalone worker spark://spark-master:7077
+docker run -d --net sparknet --name spark-worker2 gradiant/spark:latest-alpine standalone worker spark://spark-master:7077
+docker run -d --net sparknet --name spark-worker3 gradiant/spark:latest-alpine standalone worker spark://spark-master:7077
+```
+## Spark Client
+Example of running a container as spark client to submit a job to the previous standalone spark:
 
-```sh
-/opt/spark/bin/spark-submit --deploy-mode cluster \
---master spark://spark-master:7077 \
---total-executor-cores 1 \
---class mta.processing.MTAStatisticsApp \
---driver-memory 1G \
---executor-memory 1G \
---jars /opt/spark-apps/postgresql-42.2.22.jar \
---conf spark.driver.extraJavaOptions='-Dconfig-path=/opt/spark-apps/mta.conf' \
---conf spark.executor.extraJavaOptions='-Dconfig-path=/opt/spark-apps/mta.conf' \
-/opt/spark-apps/mta-processing.jar
+```
+docker run -ti --net sparknet --rm gradiant/spark:latest-alpine spark-submit \
+  --master spark://spark-master:7077 \
+  --class org.apache.spark.examples.SparkPi $SPARK_HOME/examples/jars/spark-examples_2.11-2.4.0.jar 100
 ```
 
-You will notice on the spark-ui a driver program and executor program running(In scala we can use deploy-mode cluster)
+## Spark on Kubernetes
 
-![alt text](./articles/images/stats-app.png "Spark UI with scala program running")
+[Official documentation](https://spark.apache.org/docs/latest/running-on-kubernetes.html)
 
+Example of submiting a spark job to a kubernetes cluster with the gradiant/spark:latest-alpine docker image.
 
-# Summary
+### Prerequisites
 
-* We compiled the necessary docker image to run spark master and worker containers.
+- A kubernetes cluster (tested on kubernetes 1.11.8)
 
-* We created a spark standalone cluster using 2 worker nodes and 1 master node using docker && docker-compose.
+- Setting up a kubernetes serviceaccount with permissions to create pods and services:
 
-* Copied the resources necessary to run demo applications.
-
-* We ran a distributed application at home(just need enough cpu cores and RAM to do so).
-
-# Why a standalone cluster?
-
-* This is intended to be used for test purposes, basically a way of running distributed spark apps on your laptop or desktop.
-
-* This will be useful to use CI/CD pipelines for your spark apps(A really difficult and hot topic)
-
-# Steps to connect and use a pyspark shell interactively
-
-* Follow the steps to run the docker-compose file. You can scale this down if needed to 1 worker. 
-
-```sh
-docker-compose up --scale spark-worker=1
-docker exec -it docker-spark-cluster_spark-worker_1 bash
-apt update
-apt install python3-pip
-pip3 install pyspark
-pyspark
+```
+kubectl create serviceaccount spark
+kubectl create rolebinding spark-role --clusterrole=edit --serviceaccount=default:spark --namespace=default
 ```
 
-# What's left to do?
 
-* Right now to run applications in deploy-mode cluster is necessary to specify arbitrary driver port.
+We setup local proxy to the Kubernetes API:
 
-* The spark submit entry in the start-spark.sh is unimplemented, the submit used in the demos can be triggered from any worker
+```
+kubectl proxy
+```
+Now kubernetes API is accessible at http://127.0.0.1:8001
+
+We run a container as spark client and point to the kubernetes API as spark scheduler: 
+```
+docker run --rm -ti --net host gradiant/spark:latest-alpine spark-submit \
+    --master k8s://http://127.0.0.1:8001 \
+    --deploy-mode cluster \
+    --name spark-pi \
+    --class org.apache.spark.examples.SparkPi \
+    --conf spark.executor.instances=2 \
+    --conf spark.kubernetes.authenticate.driver.serviceAccountName=spark \
+    --conf spark.kubernetes.container.image=gradiant/spark:latest-alpine \
+    --conf spark.kubernetes.executor.request.cores=0.2 \
+    --executor-memory 500M \
+    $SPARK_HOME/examples/jars/spark-examples_*.jar 100
+   ```
+We can check the driver pod of the pi application is deployed in kubernetes dashboard:
+
+![driver pod](https://github.com/Gradiant/dockerized-spark/blob/master/images/spark-kubernetes.png)
+
+We can check the log at the driver pod output:
+
+![driver pod_logs](https://github.com/Gradiant/dockerized-spark/blob/master/images/driver-pod-logs.png)
+
+*Note: the previous spark-submit configuration is set up for testing*
+
+*request.cores and executor-memory is set to low values to start the job even in a kubernetes cluster with low available resources*
