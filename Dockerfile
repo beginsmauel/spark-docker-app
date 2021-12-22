@@ -46,7 +46,7 @@ ADD https://repo1.maven.org/maven2/io/fabric8/kubernetes-client/4.4.2/kubernetes
 
 ADD https://repo1.maven.org/maven2/org/apache/spark/spark-avro_2.12/$SPARK_VERSION/spark-avro_2.12-$SPARK_VERSION.jar $SPARK_HOME/jars
 
-RUN cp $SPARK_HOME/examples/jars/spark-examples_2.11-$SPARK_VERSION.jar $SPARK_HOME/jars/
+#RUN cp $SPARK_HOME/examples/jars/spark-examples_2.12-$SPARK_VERSION.jar $SPARK_HOME/jars/
 
 COPY ./spark/spark-aggregator.jar /opt/$SPARK_VERSION-bin-hadoop2.7/local/$SPARK_HOME/jars/
 COPY ./spark/spark-cassandra.jar /opt/$SPARK_VERSION-bin-hadoop2.7/local/$SPARK_HOME/jars/
