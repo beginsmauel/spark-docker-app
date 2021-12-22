@@ -48,6 +48,10 @@ ADD https://repo1.maven.org/maven2/org/apache/spark/spark-avro_2.11/$SPARK_VERSI
 
 RUN cp $SPARK_HOME/examples/jars/spark-examples_2.11-$SPARK_VERSION.jar $SPARK_HOME/jars/
 
+COPY ./spark/spark-aggregator.jar $SPARK_HOME/jars/
+COPY ./spark/spark-cassandra.jar $SPARK_HOME/jars/
+
+
 WORKDIR $SPARK_HOME/local
 
 COPY ./standalone /opt/spark/sbin/standalone
